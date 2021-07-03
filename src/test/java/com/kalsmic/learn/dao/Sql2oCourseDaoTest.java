@@ -57,7 +57,7 @@ class Sql2oCourseDaoTest
     }
 
     @Test
-    public void exisitingCoursesCanBeFoundById() throws DaoException
+    public void existingCoursesCanBeFoundById() throws DaoException
     {
         Course course = getNewTestCourse();
         dao.add( course );

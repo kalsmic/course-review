@@ -2,7 +2,9 @@ package com.kalsmic.learn;
 
 import com.google.gson.Gson;
 import com.kalsmic.learn.dao.Sql2oCourseDao;
+import com.kalsmic.learn.dao.Sql2oReviewDao;
 import com.kalsmic.learn.model.Course;
+import com.kalsmic.learn.model.Review;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -28,6 +30,7 @@ class ApiTest
     private ApiClient client;
     private Gson gson;
     private Sql2oCourseDao courseDao;
+    private Sql2oReviewDao reviewDao;
 
     @BeforeAll
     public static void startServer(){
@@ -45,6 +48,7 @@ class ApiTest
     {
         Sql2o sql2o = new Sql2o( TEST_DATASOURCE+ ";INIT=RUNSCRIPT from 'classpath:db/init.sql'" ,"","");
         courseDao = new Sql2oCourseDao( sql2o );
+        reviewDao = new Sql2oReviewDao( sql2o );
         // keep connection open through entire test so it is not wiped out
         connection = sql2o.open();
         client = new ApiClient( "http://localhost:" + PORT );
@@ -94,9 +98,53 @@ class ApiTest
     public void invalidCourseIdReturnBadRequestStatus()
     {
         ApiResponse res = client.request( "GET", "/courses/45e" );
-        Course  retrieved = gson.fromJson( res.getBody(), Course.class );
-        assertEquals(400, res.getStatus());
-        assertTrue(res.getBody().contains( "Please provide a valid id" ));
+        Course retrieved = gson.fromJson( res.getBody(), Course.class );
+        assertEquals( 400, res.getStatus() );
+        assertTrue( res.getBody().contains( "Please provide a valid id" ) );
+    }
+
+    @Test
+    public void addReviewGivesCreatedStatus() throws Exception
+    {
+        Course course = getNewTestCourse();
+        courseDao.add( course );
+
+        Map<String, Object> values = new HashMap<>();
+        values.put( "rating", 5 );
+        values.put( "comment", "Test comment" );
+        ApiResponse res = client.request( "POST", String.format( "/courses/%d/reviews", course.getId() ),
+                gson.toJson( values ) );
+
+        assertEquals( 201, res.getStatus() );
+
+    }
+
+    @Test
+    public void addReviewToUnknownCourseThrowsError()
+    {
+
+        Map<String, Object> values = new HashMap<>();
+        values.put( "rating", 5 );
+        values.put( "comment", "Test comment" );
+        ApiResponse res = client.request( "POST", "/courses/34/reviews", gson.toJson( values ) );
+
+        assertEquals( 500, res.getStatus() );
+    }
+
+    @Test
+    public void multipleReviewsReturnedForCourse() throws Exception
+    {
+        Course course = getNewTestCourse();
+        courseDao.add( course );
+        reviewDao.add( new Review( course.getId(), 5, "Test Comment 1" ) );
+        reviewDao.add( new Review( course.getId(), 3, "Test Comment 2" ) );
+
+        ApiResponse res = client.request( "GET",
+                String.format( "/courses/%d/reviews",course.getId()));
+        Review[] reviews = gson.fromJson( res.getBody(), Review[].class );
+
+        assertEquals( 2, reviews.length );
+        assertEquals( 200, res.getStatus() );
     }
 
     private Course getNewTestCourse()
