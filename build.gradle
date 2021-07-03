@@ -1,0 +1,22 @@
+plugins {
+    id 'java'
+}
+
+group 'com.kalsmic.learn'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // https://mvnrepository.com/artifact/org.sql2o/sql2o
+    compile group: 'org.sql2o', name: 'sql2o', version: '1.5.4'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.7.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
+}
+
+test {
+    useJUnitPlatform()
+}
